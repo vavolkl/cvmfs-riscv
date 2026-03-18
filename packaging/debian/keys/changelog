@@ -1,4 +1,4 @@
-cvmfs-keys (1.5-1) lucid; urgency=low
+cvmfs-keys (1.5) lucid; urgency=low
 
   * Add egi and osg keys and config.  Add automated server ordering to
     egi and osg config.

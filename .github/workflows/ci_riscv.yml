@@ -1,0 +1,93 @@
+name: cloudtests_riscv
+on:
+  pull_request:
+    branches: [devel, cvmfs*]
+  workflow_dispatch:
+
+jobs:
+  # Fan out a package build across distro containers on the native riscv64
+  # runner. Each entry becomes its own reusable-workflow run (ci_riscv_package.yml).
+  # fail-fast is off so one distro's failure doesn't cancel the others.
+  #
+  # These are build-only: the runners have no systemd, so we can't install the
+  # packages (postinst runs cvmfs_config/autofs) or run the integration suite
+  # here. Integration testing lives in the QEMU workflow (ci_qemu.yml).
+  packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: debian-trixie, container: 'debian:trixie' }
+          - { id: ubuntu-24.04,  container: 'ubuntu:24.04' }
+          # rpm coverage: only the AlmaLinux riscv64 port publishes an image,
+          # under the riscv64/ namespace (not library/almalinux). 10-kitten is
+          # the CentOS Stream 10-tracking preview, so expect occasional red.
+          - { id: almalinux-10-kitten, container: 'riscv64/almalinux:10-kitten' }
+          # Fedora has no riscv64 registry image, only an OCI archive on the
+          # Fedora mirror. It can't use a job-level `container:`, so it's built
+          # separately in the fedora job below.
+    uses: ./.github/workflows/ci_riscv_package.yml
+    with:
+      id: ${{ matrix.id }}
+      container: ${{ matrix.container }}
+
+  # Fedora riscv64 ships only as an OCI archive on the Fedora mirror (no
+  # registry image), so we can't use a job-level `container:` like the matrix
+  # above. Instead: download + verify the archive, import it into the local
+  # Docker daemon with skopeo, then run the same build scripts inside a
+  # `docker run`. Bump FEDORA_IMAGE_URL/SHA256 when a newer dated build lands.
+  fedora:
+    name: "Packages (fedora-44)"
+    runs-on: ubuntu-24.04-riscv
+    env:
+      FEDORA_IMAGE_URL: 'https://dl.fedoraproject.org/pub/alt/risc-v/release/44/Container/riscv64/images/Fedora-Container-Base-Generic-44-20260604.0.riscv64.oci.tar.xz'
+      FEDORA_IMAGE_SHA256: '198c75fe6f58fea77e539fd29a3103407c0923833c7192c5e962a008c0595f31'
+      FEDORA_IMAGE_TAG: 'localhost/fedora-riscv:44'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Download and import the Fedora riscv64 OCI archive
+        run: |
+          set -euxo pipefail
+          if ! command -v skopeo >/dev/null 2>&1 || ! command -v unxz >/dev/null 2>&1; then
+            sudo apt-get -y update
+            sudo apt-get -y install skopeo xz-utils
+          fi
+          curl -fSL "$FEDORA_IMAGE_URL" -o fedora.oci.tar.xz
+          echo "${FEDORA_IMAGE_SHA256}  fedora.oci.tar.xz" | sha256sum -c -
+          # skopeo's oci-archive transport wants an uncompressed tar
+          unxz fedora.oci.tar.xz
+          sudo skopeo copy "oci-archive:fedora.oci.tar" "docker-daemon:${FEDORA_IMAGE_TAG}"
+          rm -f fedora.oci.tar
+      - name: Build packages
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/build /tmp/build-config
+          docker run --rm \
+            -v "$PWD":/src -w /src \
+            -v /tmp/build:/tmp/build \
+            -v /tmp/build-config:/tmp/build-config \
+            "$FEDORA_IMAGE_TAG" \
+            bash -euxc '
+              # autoconf/automake/libtool: the riscv64 externals (libcrypto,
+              # protobuf) run autoreconf in their configureHook on rv64, and the
+              # minimal Fedora base image ships without autotools.
+              dnf -y install git sudo ca-certificates autoconf automake libtool
+              git config --global --add safe.directory /src
+              ./ci/build_install_builddeps.sh --install /src
+              ./ci/build_package.sh /src /tmp/build-config cvmfs-config
+              ./ci/build_package.sh /src /tmp/build cvmfs
+              # make root-owned outputs readable by the runner user for upload
+              chmod -R a+rX /tmp/build /tmp/build-config
+            '
+      - name: Upload packages as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cvmfs-packages-fedora-44
+          if-no-files-found: warn
+          path: |
+            /tmp/build/*.rpm
+            /tmp/build/**/*.rpm
+            /tmp/build-config/*.rpm
+            /tmp/build-config/**/*.rpm

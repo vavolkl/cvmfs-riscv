@@ -1,4 +1,4 @@
-cvmfs-config-shrinkwrap (1.1-1) lucid; urgency=low
+cvmfs-config-shrinkwrap (1.1) lucid; urgency=low
 
   * Add UNL HPC stratum 1, enable Geo-API
 

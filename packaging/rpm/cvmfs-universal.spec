@@ -117,11 +117,10 @@ BuildRequires: pkgconfig
 BuildRequires: %{cvmfs_python_devel}
 BuildRequires: unzip
 BuildRequires: zlib-devel
-%if 0%{?suse_version}
-BuildRequires: nlohmann_json-devel
-%else
-BuildRequires: json-devel
-%endif
+# nlohmann_json is header-only and vendored via externals/json (CMake falls
+# back to fetching it when no system package is found), so we don't require a
+# system json-devel here. This avoids depending on EPEL on AlmaLinux/RHEL,
+# where json-devel is not in the base repos.
 BuildRequires: libarchive-devel
 %if 0%{?rhel} >= 7 || 0%{?fedora} || 0%{?sle12} || 0%{?sle15}
 BuildRequires: systemd
@@ -240,11 +239,8 @@ BuildRequires: %{cvmfs_python_devel}
 BuildRequires: libcap-devel
 BuildRequires: help2man
 BuildRequires: unzip
-%if 0%{?suse_version}
-BuildRequires: nlohmann_json-devel
-%else
-BuildRequires: json-devel
-%endif
+# nlohmann_json is header-only and vendored via externals/json (see comment on
+# the first BuildRequires block above); no system json-devel needed.
 BuildRequires: libarchive-devel
 BuildRequires: %{cvmfs_python_setuptools}
 %if 0%{?suse_version}

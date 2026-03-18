@@ -1,4 +1,4 @@
-cvmfs-config-graphdriver (1.2-1) lucid; urgency=low
+cvmfs-config-graphdriver (1.2) lucid; urgency=low
 
   * Remove kernel cache workaround
 

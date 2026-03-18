@@ -1,4 +1,4 @@
-cvmfs-config-none (1.1-0) lucid; urgency=low
+cvmfs-config-none (1.1) lucid; urgency=low
 
   * Turn into virtual package
 

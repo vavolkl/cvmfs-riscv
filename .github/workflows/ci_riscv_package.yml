@@ -1,0 +1,64 @@
+name: riscv package build
+
+# Reusable workflow: build the CVMFS packages for a single distro container on
+# the native riscv64 runner. The parent workflow (ci_riscv.yml) fans this out
+# across a matrix of container images. Everything here is package-manager
+# agnostic: ci/build_install_builddeps.sh auto-detects deb/rhel/suse and
+# ci/build_package.sh picks the matching build script (deb.sh/rpm.sh).
+
+on:
+  workflow_call:
+    inputs:
+      container:
+        description: 'Container image to build the packages in (e.g. debian:trixie)'
+        required: true
+        type: string
+      id:
+        description: 'Slug for this build, used in job and artifact names (e.g. debian-trixie)'
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: "Packages (${{ inputs.id }})"
+    runs-on: ubuntu-24.04-riscv
+    container:
+      image: ${{ inputs.container }}
+    steps:
+      # Minimal images ship without git/sudo; actions/checkout needs git and the
+      # build scripts assume a working sudo (they run as root, so sudo is a no-op
+      # passthrough but must exist). autoconf/automake/libtool are needed because
+      # the riscv64 externals (libcrypto, protobuf) run autoreconf in their
+      # configureHook on rv64, and minimal images ship without autotools.
+      - name: Install prerequisites
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get -y update
+            apt-get -y install git sudo ca-certificates autoconf automake libtool
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf -y install git sudo ca-certificates autoconf automake libtool
+          elif command -v yum >/dev/null 2>&1; then
+            yum -y install git sudo ca-certificates autoconf automake libtool
+          fi
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Mark workspace as safe for git
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Install build dependencies
+        run: ./ci/build_install_builddeps.sh --install "$PWD"
+      - name: Build packages
+        run: |
+          mkdir -p /tmp/build /tmp/build-config
+          ./ci/build_package.sh "$PWD" /tmp/build-config cvmfs-config
+          ./ci/build_package.sh "$PWD" /tmp/build cvmfs
+      - name: Upload packages as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cvmfs-packages-${{ inputs.id }}
+          if-no-files-found: warn
+          path: |
+            /tmp/build/*.deb
+            /tmp/build/**/*.rpm
+            /tmp/build-config/*.deb
+            /tmp/build-config/**/*.rpm
