@@ -44,9 +44,6 @@ jobs:
         with:
           path: /home/runner/.cache/
           key: v3-cvmfs-ci-cache-${{ steps.lsb-release.outputs.id-release }}-${{ steps.lsb-release.outputs.arch }}
-      - name: Setup Squid proxy
-        id: squid-proxy
-        uses: ./.github/actions/setup-squid-proxy
       - name: Check for builddep package
         id: cvmfs-builddep-check
         run: |
@@ -166,35 +163,6 @@ jobs:
           path: |
               /tmp/test.log
 
-      - name: Analyze cache misses
-        run: |
-          echo "=== Cache Analysis ==="
-          echo "Total objects in cache:"
-          sudo find /var/cache/squid -name "????????" | wc -l
-
-          echo "Cache directory size:"
-          sudo du -sh /var/cache/squid
-
-          echo "Recent cache log entries:"
-          sudo ls -alhR /var/log/squid
-          sudo tail -20 /var/log/squid/cache.log | grep -E "(CACHE_|STORE_|RELEASE)" || true
-
-          echo "Access log analysis:"
-          sudo grep -E "(HIT|MISS)" /var/log/squid/access.log | tail -10 || true
-      - name: Backup squid cache data for next run
-        if: always()
-        run: |
-          # Copy cache data back to user space for GitHub Actions cache
-          mkdir -p $HOME/.cache/squid-cache $HOME/.cache/squid-logs
-          sudo mv /var/cache/squid/* $HOME/.cache/squid-cache/ 2>/dev/null || true
-          sudo mv /var/log/squid/* $HOME/.cache/squid-logs/ 2>/dev/null || true
-
-          # Change ownership to runner user for caching
-          sudo chown -R runner:docker $HOME/.cache/squid-cache $HOME/.cache/squid-logs
-
-          # Display cache statistics
-          echo "Cache size: $(du -sh $HOME/.cache/squid-cache 2>/dev/null || echo '0 B')"
-          echo "Log size: $(du -sh $HOME/.cache/squid-logs 2>/dev/null || echo '0 B')"
       - name: Save CI cache
         if: github.ref == 'refs/heads/devel' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
