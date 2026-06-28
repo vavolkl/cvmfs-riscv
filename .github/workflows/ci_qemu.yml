@@ -75,7 +75,13 @@ jobs:
           PUB_KEY_FILE=$HOME/.ssh/ci_vm_key.pub
           # libguestfs edits the guest filesystem directly (no guest code runs),
           # so this works regardless of the root filesystem type (btrfs/ext4/xfs).
+          # --no-network keeps the appliance from bringing up networking: recent
+          # libguestfs defaults to the passt backend, which fails to start in the
+          # GitHub Actions sandbox ("passt exited with status 1"). None of the
+          # operations below need appliance network access (the firstboot command
+          # runs later inside the real VM), so disabling it sidesteps passt.
           sudo --preserve-env=LIBGUESTFS_BACKEND virt-customize -a fedora-riscv.raw \
+            --no-network \
             --root-password password:cvmfs \
             --ssh-inject "${VM_USER}:file:${PUB_KEY_FILE}" \
             --hostname cvmfs-riscv \
