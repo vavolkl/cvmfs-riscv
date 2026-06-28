@@ -87,7 +87,16 @@ jobs:
             --hostname cvmfs-riscv \
             --append-line '/etc/ssh/sshd_config:PermitRootLogin yes' \
             --append-line '/etc/ssh/sshd_config:PubkeyAuthentication yes' \
-            --firstboot-command 'systemctl enable --now sshd.service'
+            --append-line '/etc/selinux/config:SELINUX=permissive' \
+            --run-command 'systemctl enable sshd.service' \
+            --selinux-relabel
+          # Booting under TCG, the first-boot SELinux autorelabel alone can take
+          # 20+ minutes before sshd ever starts. Avoid it entirely:
+          #   --selinux-relabel  relabels the (offline-edited) filesystem now, so
+          #                      the guest does not trigger an autorelabel at boot.
+          #   SELINUX=permissive belt-and-braces: a mislabel can't block login.
+          #   --run-command (not --firstboot-command) enables sshd at the normal
+          #                      boot target, off the slower firstboot code path.
 
       - name: Start QEMU riscv64 VM
         run: |
