@@ -78,6 +78,12 @@ jobs:
           mkdir /tmp/build-ubuntu-config
           ./ci/build_package.sh $PWD /tmp/build-ubuntu-config cvmfs-config
           ./ci/build_package.sh $PWD /tmp/build-ubuntu cvmfs
+      - name: Upload packages as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cvmfs-packages-${{ steps.lsb-release.outputs.id-release }}-${{ steps.lsb-release.outputs.arch }}
+          path: |
+              /tmp/build-ubuntu*/*.deb
       - name: Install packages
         run: |
           sudo apt-get -y remove "cvmfs*"
