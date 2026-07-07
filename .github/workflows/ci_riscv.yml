@@ -1,11 +1,11 @@
-name: cloudtests_ubuntu
+name: cloudtests_riscv
 on:
   pull_request:
     branches: [devel, cvmfs*]
   workflow_dispatch:
     inputs:
       inputTestCases:
-        description: 'Ex. src/0* src/1*'     
+        description: 'Ex. src/0* src/1*'
         required: true
         default: 'src/0* src/1*'
       inputSuites:
@@ -14,7 +14,27 @@ on:
         default: 'quick'
 
 jobs:
-  cloudtest_ubuntu:
+  # Fan out a package build across distro containers on the native riscv64
+  # runner. Each entry becomes its own reusable-workflow run (ci_riscv_package.yml).
+  # fail-fast is off so one distro's failure doesn't cancel the others.
+  packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: debian-trixie, container: 'debian:trixie' }
+          - { id: ubuntu-noble,  container: 'ubuntu:noble' }
+          - { id: fedora-41,     container: 'fedora:41' }
+          # riscv64 for EL is still experimental; kept in the matrix but expect
+          # occasional red until upstream images stabilise.
+          - { id: almalinux-9,   container: 'almalinux:9' }
+    uses: ./.github/workflows/ci_riscv_package.yml
+    with:
+      id: ${{ matrix.id }}
+      container: ${{ matrix.container }}
+
+  # Native full integration-test run on the riscv64 runner (build + test suite).
+  cloudtest_riscv:
     runs-on: ubuntu-24.04-riscv
     steps:
 
