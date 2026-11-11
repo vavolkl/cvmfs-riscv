@@ -121,6 +121,12 @@ BuildRequires: pkgconfig
 BuildRequires: %{cvmfs_python_devel}
 BuildRequires: unzip
 BuildRequires: zlib-devel
+%ifarch riscv64
+# externals/libcrypto runs autoreconf: LibreSSL's bundled config.guess predates riscv64.
+BuildRequires: autoconf
+BuildRequires: automake
+BuildRequires: libtool
+%endif
 %if 0%{?suse_version}
 BuildRequires: nlohmann_json-devel
 %else
