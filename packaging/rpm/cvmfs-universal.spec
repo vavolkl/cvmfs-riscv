@@ -48,7 +48,7 @@
 %endif
 
 
-%if 0%{?sle15} || 0%{?rhel} >= 8 || 0%{?fedora} >= 31
+%if 0%{?suse_version} >= 1500 || 0%{?rhel} >= 8 || 0%{?fedora} >= 31
 %define cvmfs_python_devel python3-devel
 %define cvmfs_python_setuptools python3-setuptools
 %else
@@ -226,7 +226,12 @@ Group: Applications/System
 Requires: cvmfs-libs = %{version}-%{release}
 # fuse library package name differs on suse
 %if 0%{?suse_version}
+# fuse 3.17 bumped the soname to 4.
+  %if 0%{?suse_version} > 1600
+Requires: libfuse3-4
+  %else
 Requires: libfuse3-3
+  %endif
 %else
 Requires: fuse3-libs >= 3.3.0
 %endif
@@ -278,7 +283,7 @@ Requires: gzip
 Requires: attr
 Requires: openssl
 Requires: httpd
-%if 0%{?sle15}
+%if 0%{?suse_version} >= 1500
 Requires: libcap2
 %else
 Requires: libcap
