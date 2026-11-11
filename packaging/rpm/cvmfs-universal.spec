@@ -124,7 +124,10 @@ BuildRequires: zlib-devel
 %if 0%{?suse_version}
 BuildRequires: nlohmann_json-devel
 %else
+# EPEL (json-devel) has no riscv64; CMake falls back to externals/json.
+%ifnarch riscv64
 BuildRequires: json-devel
+%endif
 %endif
 BuildRequires: libarchive-devel
 %if 0%{?rhel} >= 7 || 0%{?fedora} || 0%{?sle12} || 0%{?sle15}
@@ -247,7 +250,10 @@ BuildRequires: unzip
 %if 0%{?suse_version}
 BuildRequires: nlohmann_json-devel
 %else
+# EPEL (json-devel) has no riscv64; CMake falls back to externals/json.
+%ifnarch riscv64
 BuildRequires: json-devel
+%endif
 %endif
 BuildRequires: libarchive-devel
 BuildRequires: %{cvmfs_python_setuptools}
