@@ -18,7 +18,8 @@ jobs:
         include:
           - { id: debian-trixie, container: 'debian:trixie' }
           - { id: ubuntu-24.04,  container: 'ubuntu:24.04' }
-          - { id: ubuntu-26.04,  container: 'ubuntu:26.04' }
+          # Not ubuntu >= 25.10: its riscv64 port targets RVA23, which these
+          # runners lack (every binary dies with SIGILL).
           # Fedora publishes no riscv64 images; Rocky does (rockylinux/ org only).
           - { id: rocky-10,      container: 'rockylinux/rockylinux:10' }
           # Leap 15 / SLE BCI have no riscv64 images; Tumbleweed does.
