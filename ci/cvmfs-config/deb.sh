@@ -40,9 +40,9 @@ build_config_package() {
   cd ${CVMFS_RESULT_LOCATION}/cvmfs-config/debian
 
   echo "running the debian package build ($config_package)..."
-  # -b: binary-only. The changelog version (e.g. 2.2-1) has a Debian revision,
-  # which dpkg >= 1.22 (Debian 13) rejects for a '3.0 (native)' source package.
-  debuild -b --no-tgz-check --check-dirname-level 0 -us -uc # -us -uc == skip signing
+  # -b (binary-only): version 2.2-1 has a revision, which newer dpkg rejects for
+  # '3.0 (native)' sources. As a dpkg-buildpackage option it must follow debuild's.
+  debuild --no-tgz-check --check-dirname-level 0 -b -us -uc # -us -uc == skip signing
   #mv ${CVMFS_SOURCE_LOCATION}/../cvmfs-config-*_* ${CVMFS_RESULT_LOCATION}/
 
   #echo "switching back to the source directory..."
