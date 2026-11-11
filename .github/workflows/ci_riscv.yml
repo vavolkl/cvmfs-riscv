@@ -23,10 +23,11 @@ jobs:
         include:
           - { id: debian-trixie, container: 'debian:trixie' }
           - { id: ubuntu-24.04,  container: 'ubuntu:24.04' }
-          - { id: fedora-44,     container: 'fedora:44' }
-          # riscv64 for EL is still experimental; expect occasional red until
-          # upstream images stabilise.
-          - { id: almalinux-9,   container: 'almalinux:9' }
+          - { id: ubuntu-26.04,  container: 'ubuntu:26.04' }
+          # Fedora publishes no riscv64 images; Rocky does (rockylinux/ org only).
+          - { id: rocky-10,      container: 'rockylinux/rockylinux:10' }
+          # Leap 15 / SLE BCI have no riscv64 images; Tumbleweed does.
+          - { id: opensuse-tumbleweed, container: 'opensuse/tumbleweed' }
     steps:
       # Minimal images ship without git/sudo; actions/checkout needs git and the
       # build scripts assume a working sudo (they run as root, so sudo is a no-op
@@ -40,6 +41,8 @@ jobs:
             dnf -y install git sudo ca-certificates
           elif command -v yum >/dev/null 2>&1; then
             yum -y install git sudo ca-certificates
+          elif command -v zypper >/dev/null 2>&1; then
+            zypper -n install git sudo ca-certificates tar gzip
           fi
       - uses: actions/checkout@v4
         with:
