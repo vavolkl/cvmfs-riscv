@@ -34,10 +34,15 @@ jobs:
             apt-get -y install git sudo ca-certificates
           elif command -v dnf >/dev/null 2>&1; then
             dnf -y install git sudo ca-certificates
+            # help2man lives in CRB.
+            dnf -y install dnf-plugins-core
+            dnf config-manager --set-enabled crb
           elif command -v yum >/dev/null 2>&1; then
             yum -y install git sudo ca-certificates
           elif command -v zypper >/dev/null 2>&1; then
-            zypper -n install git sudo ca-certificates tar gzip
+            # busybox-gawk conflicts with gawk, which rpm-build requires.
+            zypper -n remove busybox-gawk || true
+            zypper -n install git sudo ca-certificates tar gzip gawk
           fi
       - uses: actions/checkout@v4
       - name: Mark workspace as safe for git
